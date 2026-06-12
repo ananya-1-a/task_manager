@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Task Manager</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+    input, select, textarea { display: block; width: 100%; margin: 6px 0 14px; padding: 8px; font-size: 14px; }
+    button { padding: 8px 20px; background: #4a90e2; color: white; border: none; cursor: pointer; font-size: 14px; }
+    button.red { background: #e24a4a; }
+    hr { margin: 30px 0; }
+    #message { color: green; font-weight: bold; margin-bottom: 10px; }
+    #error { color: red; font-weight: bold; margin-bottom: 10px; }
+    .task { border: 1px solid #ccc; padding: 10px; margin: 8px 0; border-radius: 4px; }
+    h2 { margin-top: 0; }
+  </style>
+</head>
+<body>
+
+<h1>Task Manager</h1>
+<div id="message"></div>
+<div id="error"></div>
+
+<!-- LOGIN -->
+<div id="section-login">
+  <h2>Login</h2>
+  <label>Email</label>
+  <input type="email" id="login-email" placeholder="you@example.com" />
+  <label>Password</label>
+  <input type="password" id="login-password" />
+  <button onclick="login()">Login</button>
+  <p>No account? <a href="#" onclick="showRegister()">Register</a></p>
+</div>
+
+<!-- REGISTER -->
+<div id="section-register" style="display:none">
+  <h2>Register</h2>
+  <label>Username</label>
+  <input type="text" id="reg-username" />
+  <label>Email</label>
+  <input type="email" id="reg-email" />
+  <label>Password</label>
+  <input type="password" id="reg-password" />
+  <label>Role</label>
+  <select id="reg-role">
+    <option value="user">User</option>
+    <option value="admin">Admin</option>
+  </select>
+  <button onclick="register()">Register</button>
+  <p>Have an account? <a href="#" onclick="showLogin()">Login</a></p>
+</div>
+
+<!-- DASHBOARD -->
+<div id="section-dashboard" style="display:none">
+  <h2>Welcome, <span id="username-display"></span>!</h2>
+  <button class="red" onclick="logout()">Logout</button>
+
+  <hr />
+
+  <h3>Add Task</h3>
+  <label>Title</label>
+  <input type="text" id="task-title" />
+  <label>Description</label>
+  <textarea id="task-desc"></textarea>
+  <label>Priority</label>
+  <select id="task-priority">
+    <option value="low">Low</option>
+    <option value="medium">Medium</option>
+    <option value="high">High</option>
+  </select>
+  <button onclick="addTask()">Add Task</button>
+
+  <hr />
+
+  <h3>My Tasks</h3>
+  <button onclick="loadTasks()">Refresh Tasks</button>
+  <div id="task-list"></div>
+</div>
+
+<script>
+  const API = "http://localhost:5000/api/v1";
+  let token = "";
+
+  function showMessage(msg) {
+    document.getElementById("message").innerText = msg;
+    document.getElementById("error").innerText = "";
+  }
+  function showError(msg) {
+    document.getElementById("error").innerText = msg;
+    document.getElementById("message").innerText = "";
+  }
+
+  function showLogin() {
+    document.getElementById("section-login").style.display = "block";
+    document.getElementById("section-register").style.display = "none";
+  }
+  function showRegister() {
+    document.getElementById("section-login").style.display = "none";
+    document.getElementById("section-register").style.display = "block";
+  }
+
+  async function register() {
+    const res = await fetch(API + "/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: document.getElementById("reg-username").value,
+        email: document.getElementById("reg-email").value,
+        password: document.getElementById("reg-password").value,
+        role: document.getElementById("reg-role").value
+      })
+    });
+    const data = await res.json();
+    if (res.ok) { showMessage("Registered! Please login."); showLogin(); }
+    else showError(data.error);
+  }
+
+  async function login() {
+    const res = await fetch(API + "/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: document.getElementById("login-email").value,
+        password: document.getElementById("login-password").value
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      token = data.access_token;
+      document.getElementById("username-display").innerText = data.user.username;
+      document.getElementById("section-login").style.display = "none";
+      document.getElementById("section-dashboard").style.display = "block";
+      showMessage("Logged in!");
+      loadTasks();
+    } else showError(data.error);
+  }
+
+  function logout() {
+    token = "";
+    document.getElementById("section-dashboard").style.display = "none";
+    document.getElementById("section-login").style.display = "block";
+    showMessage("Logged out.");
+  }
+
+  async function addTask() {
+    const res = await fetch(API + "/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({
+        title: document.getElementById("task-title").value,
+        description: document.getElementById("task-desc").value,
+        priority: document.getElementById("task-priority").value
+      })
+    });
+    const data = await res.json();
+    if (res.ok) { showMessage("Task added!"); loadTasks(); }
+    else showError(data.error);
+  }
+
+  async function loadTasks() {
+    const res = await fetch(API + "/tasks", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const data = await res.json();
+    const list = document.getElementById("task-list");
+    if (!data.tasks.length) { list.innerHTML = "<p>No tasks yet.</p>"; return; }
+    list.innerHTML = data.tasks.map(t => `
+      <div class="task">
+        <strong>${t.title}</strong> — ${t.status} | ${t.priority}<br/>
+        <small>${t.description || ""}</small><br/>
+        <button class="red" onclick="deleteTask(${t.id})">Delete</button>
+      </div>
+    `).join("");
+  }
+
+  async function deleteTask(id) {
+    const res = await fetch(API + "/tasks/" + id, {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (res.ok) { showMessage("Deleted."); loadTasks(); }
+    else showError("Could not delete.");
+  }
+</script>
+
+</body>
+</html>
