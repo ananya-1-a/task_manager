@@ -18,7 +18,7 @@ A scalable REST API with JWT authentication, role-based access control (RBAC), a
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/task-manager-api.git
+git clone https://github.com/ananya-1-a/task_manager.git
 cd task-manager-api
 ```
 
@@ -100,6 +100,12 @@ To explore the API:
 3. Register a user, login, copy the token
 4. Click Authorize and enter `Bearer <your_token>`
 5. Test all endpoints
+
+### Screenshots
+
+![Swagger UI](screenshots/swagger.png)
+![Login Response](screenshots/login.png)
+![Create Task](screenshots/create-task.png)
 ---
 
 ## Frontend
