@@ -94,7 +94,12 @@ Authorization: Bearer <your_jwt_token>
 ## API Documentation
 
 Swagger UI available at: `http://localhost:5000/docs/`
-
+To explore the API:
+1. Run the server with `python app.py`
+2. Open `http://localhost:5000/docs/` in your browser
+3. Register a user, login, copy the token
+4. Click Authorize and enter `Bearer <your_token>`
+5. Test all endpoints
 ---
 
 ## Frontend
